@@ -2,12 +2,15 @@ import pygame
 import sys
 from shop import Shop
 from card import Card
+from battle import Battle
 
 class Battlefield:
     def __init__(self, screen, players):
         self.screen = screen
         self.players = players
         self.current_player_idx = 0
+        self.turns_taken = 0
+        self.rounds = 0
         self.font = pygame.font.Font(None, 30)
         self.clock = pygame.time.Clock()
 
@@ -155,9 +158,27 @@ class Battlefield:
         """Switch to the next player's turn."""
         self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
         self.turn_start_time = pygame.time.get_ticks()
+        self.turns_taken += 1
+
+        # Check if both players have had their turn
+        if self.turns_taken >= len(self.players):
+            self.turns_taken = 0
+            self.rounds += 1
+            self.start_battle()
 
     def start_battle(self):
-        """Mulai layar battlefield."""
+        """Mulai battle antara dua kartu utama."""
+        battle = Battle(self.screen, self.players[0], self.players[1])
+        battle.start_battle()
+
+        # Check if 5 rounds are completed
+        if self.rounds < 5:
+            self.start_battlefield()
+        else:
+            print("Game Over")
+
+    def start_battlefield(self):
+        """Mulai layar battlefield untuk persiapan battle."""
         running = True
         while running:
             self.draw_battlefield()
@@ -177,6 +198,10 @@ class Battlefield:
                         running = False
 
             self.clock.tick(30)
+
+        self.turn_start_time = pygame.time.get_ticks()
+        self.current_player_idx = 0
+        self.turns_taken = 0
 
 
 # Contoh penggunaan
@@ -204,4 +229,4 @@ if __name__ == "__main__":
     player2.add_card(Card("Elf", 70, 20, 30))
 
     battlefield = Battlefield(screen, [player1, player2])
-    battlefield.start_battle()
+    battlefield.start_battlefield()
