@@ -19,8 +19,13 @@ class Battle:
         self.ATTACK_COLOR = (255, 0, 0)
 
         # Ukuran kartu
-        self.CARD_WIDTH = 101
-        self.CARD_HEIGHT = 112
+        self.CARD_WIDTH = 120
+        self.CARD_HEIGHT = 180
+
+        # State
+        self.selected_card = None
+        self.opponent_card = None
+        self.current_player = player1
 
     def draw_card(self, card, pos, color=None):
         """Gambar kartu di layar."""
@@ -52,15 +57,65 @@ class Battle:
 
         # Gambar kartu utama player 1
         if self.player1.cards:
-            main_card1 = self.player1.cards[0]
-            self.draw_card(main_card1, (275, 258))
+            for i, card in enumerate(self.player1.cards):
+                self.draw_card(card, (100 + i * (self.CARD_WIDTH + 10), 200))
 
         # Gambar kartu utama player 2
         if self.player2.cards:
-            main_card2 = self.player2.cards[0]
-            self.draw_card(main_card2, (456, 258))
+            for i, card in enumerate(self.player2.cards):
+                self.draw_card(card, (500 + i * (self.CARD_WIDTH + 10), 200))
 
         pygame.display.flip()
+
+    def handle_click(self, pos):
+        """Tangani klik mouse untuk memilih kartu."""
+        if self.current_player == self.player1:
+            for i, card in enumerate(self.player1.cards):
+                card_rect = pygame.Rect(100 + i * (self.CARD_WIDTH + 10), 200, self.CARD_WIDTH, self.CARD_HEIGHT)
+                if card_rect.collidepoint(pos):
+                    self.selected_card = card
+                    print(f"Player 1 selected {card.name}")
+                    return
+        else:
+            for i, card in enumerate(self.player2.cards):
+                card_rect = pygame.Rect(500 + i * (self.CARD_WIDTH + 10), 200, self.CARD_WIDTH, self.CARD_HEIGHT)
+                if card_rect.collidepoint(pos):
+                    self.selected_card = card
+                    print(f"Player 2 selected {card.name}")
+                    return
+
+        if self.selected_card:
+            if self.current_player == self.player1:
+                for i, card in enumerate(self.player2.cards):
+                    card_rect = pygame.Rect(500 + i * (self.CARD_WIDTH + 10), 200, self.CARD_WIDTH, self.CARD_HEIGHT)
+                    if card_rect.collidepoint(pos):
+                        self.opponent_card = card
+                        print(f"Player 1 selected {card.name} as opponent")
+                        self.battle_cards()
+                        return
+            else:
+                for i, card in enumerate(self.player1.cards):
+                    card_rect = pygame.Rect(100 + i * (self.CARD_WIDTH + 10), 200, self.CARD_WIDTH, self.CARD_HEIGHT)
+                    if card_rect.collidepoint(pos):
+                        self.opponent_card = card
+                        print(f"Player 2 selected {card.name} as opponent")
+                        self.battle_cards()
+                        return
+
+    def battle_cards(self):
+        """Lakukan battle antara dua kartu yang dipilih."""
+        if self.selected_card and self.opponent_card:
+            self.animate_attack((260, 290), (540, 290))
+            self.opponent_card.hp -= self.selected_card.atk
+            if self.opponent_card.hp <= 0:
+                print(f"{self.opponent_card.name} is defeated!")
+                if self.current_player == self.player1:
+                    self.player2.cards.remove(self.opponent_card)
+                else:
+                    self.player1.cards.remove(self.opponent_card)
+
+            self.selected_card, self.opponent_card = None, None
+            self.current_player = self.player2 if self.current_player == self.player1 else self.player1
 
     def start_battle(self):
         """Mulai battle antara dua kartu utama."""
@@ -73,35 +128,27 @@ class Battle:
                     pygame.quit()
                     sys.exit()
 
-            # Battle logic
-            main_card1 = self.player1.cards[0]
-            main_card2 = self.player2.cards[0]
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.handle_click(event.pos)
 
-            # Player 1 attacks
-            self.animate_attack((260, 290), (540, 290))
-            main_card2.hp -= main_card1.atk
-            if main_card2.hp <= 0:
-                print(f"{main_card2.name} is defeated!")
+            # Check if any player has no cards left
+            if not self.player1.cards or not self.player2.cards:
                 running = False
-                break
 
-            # Player 2 attacks
-            self.animate_attack((540, 290), (260, 290))
-            main_card1.hp -= main_card2.atk
-            if main_card1.hp <= 0:
-                print(f"{main_card1.name} is defeated!")
-                running = False
-                break
-
-            self.clock.tick(1)  # Slow down the battle for better visualization
+            self.clock.tick(30)
 
         # Display the result
-        self.display_result(main_card1, main_card2)
+        self.display_result()
 
-    def display_result(self, card1, card2):
+    def display_result(self):
         """Tampilkan hasil battle."""
         self.screen.blit(self.background, (0, 0))
-        result_text = f"{card1.name} wins!" if card2.hp <= 0 else f"{card2.name} wins!"
+        if not self.player1.cards:
+            result_text = "Player 2 wins!"
+        elif not self.player2.cards:
+            result_text = "Player 1 wins!"
+        else:
+            result_text = "It's a draw!"
         result_surface = self.font.render(result_text, True, self.TEXT_COLOR)
         self.screen.blit(result_surface, (300, 300))
         pygame.display.flip()
