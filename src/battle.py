@@ -1,12 +1,14 @@
 import pygame
 import sys
 from card import Card
+from battlefield import Battlefield
 
-class Battle:
-    def __init__(self, screen, player1, player2):
+class Battle(Battlefield) :
+    def __init__(self, screen, players, rounds):
+        super().__init__(screen, players, rounds)
         self.screen = screen
-        self.player1 = player1
-        self.player2 = player2
+        self.player1 = players[0]
+        self.player2 = players[1]
         self.font = pygame.font.Font(None, 30)
         self.clock = pygame.time.Clock()
 
@@ -25,7 +27,7 @@ class Battle:
         # State
         self.selected_card = None
         self.opponent_card = None
-        self.current_player = player1
+        self.current_player = players[0]
 
     def draw_card(self, card, pos, color=None):
         """Gambar kartu di layar."""
@@ -36,10 +38,10 @@ class Battle:
         name_text = self.font.render(card.name, True, self.TEXT_COLOR)
         self.screen.blit(name_text, (pos[0] + 10, pos[1] + 10))
 
-        hp_text = self.font.render(f"HP: {card.hp}", True, self.TEXT_COLOR)
+        hp_text = self.font.render(f"HP: {card.health}", True, self.TEXT_COLOR)
         self.screen.blit(hp_text, (pos[0] + 10, pos[1] + 50))
 
-        atk_text = self.font.render(f"ATK: {card.atk}", True, self.TEXT_COLOR)
+        atk_text = self.font.render(f"ATK: {card.attack}", True, self.TEXT_COLOR)
         self.screen.blit(atk_text, (pos[0] + 10, pos[1] + 90))
 
     def animate_attack(self, attacker_pos, defender_pos):
@@ -56,12 +58,12 @@ class Battle:
         self.screen.blit(self.background, (0, 0))
 
         # Gambar kartu utama player 1
-        if self.player1.cards:
+        if any(self.player1.cards):
             for i, card in enumerate(self.player1.cards):
                 self.draw_card(card, (100 + i * (self.CARD_WIDTH + 10), 200))
 
         # Gambar kartu utama player 2
-        if self.player2.cards:
+        if any(self.player2.cards):
             for i, card in enumerate(self.player2.cards):
                 self.draw_card(card, (500 + i * (self.CARD_WIDTH + 10), 200))
 
@@ -106,8 +108,8 @@ class Battle:
         """Lakukan battle antara dua kartu yang dipilih."""
         if self.selected_card and self.opponent_card:
             self.animate_attack((260, 290), (540, 290))
-            self.opponent_card.hp -= self.selected_card.atk
-            if self.opponent_card.hp <= 0:
+            self.opponent_card.health -= self.selected_card.attack
+            if self.opponent_card.health <= 0:
                 print(f"{self.opponent_card.name} is defeated!")
                 if self.current_player == self.player1:
                     self.player2.cards.remove(self.opponent_card)
@@ -137,10 +139,26 @@ class Battle:
 
             self.clock.tick(30)
 
-        # Display the result
+            # Cek apakah ronde selesai dan tambahkan poin
+            if not self.player1.cards or not self.player2.cards:
+                if self.player1.cards:
+                    self.player1_score += 1
+                if self.player2.cards:
+                    self.player2_score += 1
+
+                print(f"Round {self.round} selesai!")
+                self.round += 1
+                
+                battlefield = Battlefield()
+                # Reset kartu atau lakukan persiapan ronde baru di sini jika perlu
+                if self.round > self.max_rounds:
+                    running = False
+
+        # Display the result setelah 3 ronde
         self.display_result()
 
-    def display_result(self):
+
+    def display_result_round(self):
         """Tampilkan hasil battle."""
         self.screen.blit(self.background, (0, 0))
         if not self.player1.cards:
@@ -153,26 +171,14 @@ class Battle:
         self.screen.blit(result_surface, (300, 300))
         pygame.display.flip()
         pygame.time.wait(3000)  # Wait for 3 seconds before closing
+    
+    def display_result(self):
+        print("Pertarungan selesai!")
+        print(f"Skor Akhir: Player 1 - {self.player1_score}, Player 2 - {self.player2_score}")
+        if self.player1_score > self.player2_score:
+            print("Player 1 menang!")
+        elif self.player2_score > self.player1_score:
+            print("Player 2 menang!")
+        else:
+            print("Pertandingan seri!")
 
-# Contoh penggunaan
-if __name__ == "__main__":
-    pygame.init()
-    screen = pygame.display.set_mode((800, 600))
-    pygame.display.set_caption("Battle Example")
-
-    class Player:
-        def __init__(self, name):
-            self.name = name
-            self.cards = []
-
-        def add_card(self, card):
-            self.cards.append(card)
-
-    player1 = Player("Player 1")
-    player1.add_card(Card("Dragon", 100, 20, 50))
-
-    player2 = Player("Player 2")
-    player2.add_card(Card("Phoenix", 80, 25, 60))
-
-    battle = Battle(screen, player1, player2)
-    battle.start_battle()

@@ -28,7 +28,7 @@ class Deck:
             # Display available cards
             y_offset = 100
             for idx, card in enumerate(self.deck):
-                card_text = f"{card.name} (HP: {card.hp}, ATK: {card.atk})"
+                card_text = f"{card.name} (HP: {card.health}, ATK: {card.attack})"
                 text_surface = self.font.render(card_text, True, TEXT_COLOR)
                 text_rect = text_surface.get_rect(center=(400, y_offset))
 

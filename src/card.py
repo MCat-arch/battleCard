@@ -1,5 +1,5 @@
 class Card:
-    def __init__(self, name, hp, atk, price):
+    def __init__(self, name, health, attack, price):
         """
         Initialize the card with attributes:
         - name: Name of the card
@@ -8,8 +8,8 @@ class Card:
         - price: Price of the card
         """
         self.name = name
-        self.hp = hp
-        self.atk = atk
+        self.health = health
+        self.attack = attack
         self.price = price
 
     def __str__(self):

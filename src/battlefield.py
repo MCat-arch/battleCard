@@ -2,8 +2,11 @@ import pygame
 import sys
 from shop import Shop
 from card import Card
-from battle import Battle
-
+# from battle import Battle
+class Battlefield:
+    pass
+class Battle(Battlefield):
+    pass
 class Battlefield:
     def __init__(self, screen, players):
         self.screen = screen
@@ -34,63 +37,33 @@ class Battlefield:
         self.turn_time = 20  # 20 seconds per turn
         self.turn_start_time = pygame.time.get_ticks()
 
-    def draw_card(self, card, pos, color=None):
-        """Gambar kartu di layar."""
-        card_rect = pygame.Rect(pos[0], pos[1], self.CARD_WIDTH, self.CARD_HEIGHT)
+    def draw_card(self, card, pos, color=None, is_selected=False):
+        """Gambar kartu di layar dengan efek klik."""
+        # Perbesar kartu jika diklik (dipilih)
+        scale_factor = 1.1 if is_selected else 1
+        scaled_width = int(self.CARD_WIDTH * scale_factor)
+        scaled_height = int(self.CARD_HEIGHT * scale_factor)
+        scaled_pos = (pos[0] - (scaled_width - self.CARD_WIDTH) // 2, pos[1] - (scaled_height - self.CARD_HEIGHT) // 2)
+        
+        card_rect = pygame.Rect(scaled_pos[0], scaled_pos[1], scaled_width, scaled_height)
+        border_color = (255, 255, 0) if is_selected else (0, 0, 0)
+        border_width = 5 if is_selected else 2
+        
+        # Gambar border kartu
+        pygame.draw.rect(self.screen, border_color, card_rect, border_width)
         pygame.draw.rect(self.screen, color or self.CARD_COLOR, card_rect)
-
+        
         # Tampilkan informasi kartu
         name_text = self.font.render(card.name, True, self.TEXT_COLOR)
-        self.screen.blit(name_text, (pos[0] + 10, pos[1] + 10))
+        self.screen.blit(name_text, (scaled_pos[0] + 10, scaled_pos[1] + 10))
 
-        hp_text = self.font.render(f"HP: {card.hp}", True, self.TEXT_COLOR)
-        self.screen.blit(hp_text, (pos[0] + 10, pos[1] + 50))
+        hp_text = self.font.render(f"HP: {card.health}", True, self.TEXT_COLOR)
+        self.screen.blit(hp_text, (scaled_pos[0] + 10, scaled_pos[1] + 50))
 
-        atk_text = self.font.render(f"ATK: {card.atk}", True, self.TEXT_COLOR)
-        self.screen.blit(atk_text, (pos[0] + 10, pos[1] + 90))
+        atk_text = self.font.render(f"ATK: {card.attack}", True, self.TEXT_COLOR)
+        self.screen.blit(atk_text, (scaled_pos[0] + 10, scaled_pos[1] + 90))
 
-    def draw_battlefield(self):
-        """Gambar battlefield di layar."""
-        self.screen.fill(self.BG_COLOR)
 
-        # Gambar kartu utama
-        current_player = self.players[self.current_player_idx]
-        if current_player.cards:
-            main_card = current_player.cards[0]
-            self.draw_card(main_card, (340, 100))
-
-        # Gambar kartu tambahan
-        if len(current_player.cards) > 1:
-            start_x = 200
-            gap = 20
-            for i, card in enumerate(current_player.cards[1:], start=1):
-                x = start_x + (self.CARD_WIDTH + gap) * (i - 1)
-                y = 300
-                self.draw_card(card, (x, y))
-
-        # Gambar deck kartu hasil shop
-        if self.shop_cards:
-            start_x = 340
-            for i, card in enumerate(self.shop_cards):
-                x = start_x + (self.CARD_WIDTH + 10) * i
-                y = 500
-                self.draw_card(card, (x, y), self.DECK_COLOR)
-
-        # Gambar tombol Merge dan Shop
-        self.draw_buttons()
-
-        # Gambar timer
-        elapsed_time = (pygame.time.get_ticks() - self.turn_start_time) / 1000
-        remaining_time = max(0, self.turn_time - elapsed_time)
-        timer_text = f"Time left: {int(remaining_time)}s"
-        timer_surface = self.font.render(timer_text, True, self.TEXT_COLOR)
-        self.screen.blit(timer_surface, (340, 50))
-
-        pygame.display.flip()
-
-        # Check if time is up
-        if remaining_time <= 0:
-            self.switch_turn()
 
     def draw_buttons(self):
         """Gambar tombol Merge dan Shop."""
@@ -119,15 +92,75 @@ class Battlefield:
             print("Shop clicked")
             self.open_shop()
 
+        # Cek klik pada kartu utama untuk swap
+        current_player = self.players[self.current_player_idx]
+        for i in range(2):
+            card_rect = pygame.Rect(340 + i * (self.CARD_WIDTH + 20), 100, self.CARD_WIDTH, self.CARD_HEIGHT)
+            if card_rect.collidepoint(pos):
+                self.selected_card_index = i
+                print(f"Selected main card at index {i}")
+                return
+
+        # Cek klik pada kartu biasa untuk swap
+        for i in range(2, len(current_player.cards)):
+            card_rect = pygame.Rect(200 + (self.CARD_WIDTH + 20) * (i - 2), 300, self.CARD_WIDTH, self.CARD_HEIGHT)
+            if card_rect.collidepoint(pos):
+                self.swap_card(i)
+                print(f"Selected regular card at index {i}")
+                return
+
     def swap_card(self, index):
         """Swap kartu utama dengan kartu lain."""
         current_player = self.players[self.current_player_idx]
-        if index < len(current_player.cards):
-            current_player.cards[0], current_player.cards[index] = (
+        if index < len(current_player.cards) and hasattr(self, 'selected_card_index'):
+            current_player.cards[self.selected_card_index], current_player.cards[index] = (
                 current_player.cards[index],
-                current_player.cards[0],
+                current_player.cards[self.selected_card_index],
             )
-            print(f"Swapped main card with card at index {index}")
+            print(f"Swapped card at index {index} with main card {self.selected_card_index}")
+            del self.selected_card_index
+
+    def draw_battlefield(self):
+        """Gambar battlefield di layar."""
+        self.screen.fill(self.BG_COLOR)
+
+        # Gambar kartu utama
+        current_player = self.players[self.current_player_idx]
+        for i in range(2):
+            if i < len(current_player.cards):
+                main_card = current_player.cards[i]
+                is_selected = hasattr(self, 'selected_card_index') and self.selected_card_index == i
+                self.draw_card(main_card, (340 + i * (self.CARD_WIDTH + 20), 100), is_selected=is_selected)
+
+        # Gambar kartu tambahan
+        if len(current_player.cards) > 2:
+            start_x = 200
+            gap = 20
+            for i, card in enumerate(current_player.cards[2:], start=2):
+                x = start_x + (self.CARD_WIDTH + gap) * (i - 2)
+                y = 300
+                self.draw_card(card, (x, y))
+
+        # Gambar deck kartu hasil shop
+        if self.shop_cards:
+            start_x = 340
+            for i, card in enumerate(self.shop_cards):
+                x = start_x + (self.CARD_WIDTH + 10) * i
+                y = 500
+                self.draw_card(card, (x, y), self.DECK_COLOR)
+
+        # Gambar tombol Merge dan Shop
+        self.draw_buttons()
+
+        # Gambar timer
+        elapsed_time = (pygame.time.get_ticks() - self.turn_start_time) / 1000
+        remaining_time = max(0, self.turn_time - elapsed_time)
+        timer_text = f"Time left: {int(remaining_time)}s"
+        timer_surface = self.font.render(timer_text, True, self.TEXT_COLOR)
+        self.screen.blit(timer_surface, (340, 50))
+
+        pygame.display.flip()
+
 
     def merge_card(self):
         """Merge kartu utama dengan kartu dari deck shop."""
@@ -139,12 +172,13 @@ class Battlefield:
             # Gabungkan atribut kartu
             merged_card = Card(
                 name=f"{main_card.name}+{shop_card.name}",
-                hp=main_card.hp + shop_card.hp,
-                atk=main_card.atk + shop_card.atk,
-                price=(main_card.price + shop_card.price) // 2,
+                health=main_card.health + shop_card.health,
+                attack=main_card.attack + shop_card.attack,
+                price=main_card.price
             )
             current_player.cards[0] = merged_card
             print(f"Merged cards into: {merged_card.name}")
+
 
     def open_shop(self):
         """Buka shop untuk menambahkan kartu ke deck shop."""
@@ -154,79 +188,164 @@ class Battlefield:
         self.shop_cards.append(new_card)
         print("Added new card from shop")
 
-    def switch_turn(self):
-        """Switch to the next player's turn."""
-        self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
-        self.turn_start_time = pygame.time.get_ticks()
-        self.turns_taken += 1
+    def start_battlefield(self):
+        while self.rounds < 3:
+            for player in self.players:
+                self.current_player_idx = self.players.index(player)
+                self.turn_start_time = pygame.time.get_ticks()
+                while True:
+                    self.draw_battlefield()
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            pygame.quit()
+                            sys.exit()
+                        if event.type == pygame.MOUSEBUTTONDOWN:
+                            self.handle_click(event.pos)
+                        elif event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_ESCAPE:
+                                return
+                    elapsed_time = (pygame.time.get_ticks() - self.turn_start_time) / 1000
+                    if elapsed_time >= self.turn_time:
+                        break
+                    pygame.display.flip()
+                    self.clock.tick(60)
 
-        # Check if both players have had their turn
-        if self.turns_taken >= len(self.players):
-            self.turns_taken = 0
-            self.rounds += 1
-            self.start_battle()
+                self.turns_taken += 1
+                if self.turns_taken >= len(self.players):
+                    self.turns_taken = 0
+                    self.start_battle()
 
     def start_battle(self):
-        """Mulai battle antara dua kartu utama."""
-        battle = Battle(self.screen, self.players[0], self.players[1])
+        self.rounds += 1
+        battle = Battle(self.screen, self.players, self.rounds)
         battle.start_battle()
 
-        # Check if 5 rounds are completed
-        if self.rounds < 5:
-            self.start_battlefield()
-        else:
-            print("Game Over")
+class Battle:
+    def __init__(self, screen, players, rounds):
+        self.screen = screen
+        self.players = players
+        self.rounds = rounds
+        self.player1 = players[0]
+        self.player2 = players[1]
+        self.font = pygame.font.Font(None, 30)
+        self.clock = pygame.time.Clock()
+        self.background = pygame.image.load("assets/battlefield.png")
+        self.TEXT_COLOR = (255, 255, 255)
+        self.CARD_COLOR = (100, 100, 250)
+        self.ATTACK_COLOR = (255, 0, 0)
+        self.CARD_WIDTH = 120
+        self.CARD_HEIGHT = 180
+        self.selected_card = None
+        self.opponent_card = None
+        self.current_player = self.player1
+        self.player1_score = 0
+        self.player2_score = 0
 
-    def start_battlefield(self):
-        """Mulai layar battlefield untuk persiapan battle."""
+    def draw_card(self, card, pos, color=None, border=False):
+        card_rect = pygame.Rect(pos[0], pos[1], self.CARD_WIDTH, self.CARD_HEIGHT)
+        if border:
+            pygame.draw.rect(self.screen, (255, 255, 0), card_rect.inflate(10, 10), 5)
+        pygame.draw.rect(self.screen, color or self.CARD_COLOR, card_rect)
+        name_text = self.font.render(card.name, True, self.TEXT_COLOR)
+        self.screen.blit(name_text, (pos[0] + 10, pos[1] + 10))
+        hp_text = self.font.render(f"HP: {card.health}", True, self.TEXT_COLOR)
+        self.screen.blit(hp_text, (pos[0] + 10, pos[1] + 50))
+        atk_text = self.font.render(f"ATK: {card.attack}", True, self.TEXT_COLOR)
+        self.screen.blit(atk_text, (pos[0] + 10, pos[1] + 90))
+
+    def animate_attack(self, attacker_pos, defender_pos):
+        for _ in range(10):
+            pygame.draw.line(self.screen, self.ATTACK_COLOR, attacker_pos, defender_pos, 5)
+            pygame.display.flip()
+            self.clock.tick(30)
+            self.screen.blit(self.background, (0, 0))
+            self.draw_battlefield()
+
+    def draw_battlefield(self):
+        self.screen.blit(self.background, (0, 0))
+        if self.player1.cards:
+            for i, card in enumerate(self.player1.cards):
+                border = card == self.selected_card
+                self.draw_card(card, (100 + i * (self.CARD_WIDTH + 10), 200), border=border)
+        if self.player2.cards:
+            for i, card in enumerate(self.player2.cards):
+                border = card == self.opponent_card
+                self.draw_card(card, (500 + i * (self.CARD_WIDTH + 10), 200), border=border)
+        pygame.display.flip()
+
+    def handle_click(self, pos):
+        """Tangani klik mouse untuk memilih kartu."""
+        if self.current_player == self.player1:
+            for i, card in enumerate(self.player1.cards):
+                card_rect = pygame.Rect(100 + i * (self.CARD_WIDTH + 10), 200, self.CARD_WIDTH, self.CARD_HEIGHT)
+                if card_rect.collidepoint(pos):
+                    self.selected_card = card
+                    print(f"Player 1 selected {card.name}")
+                    return
+        else:
+            for i, card in enumerate(self.player2.cards):
+                card_rect = pygame.Rect(500 + i * (self.CARD_WIDTH + 10), 200, self.CARD_WIDTH, self.CARD_HEIGHT)
+                if card_rect.collidepoint(pos):
+                    self.selected_card = card
+                    print(f"Player 2 selected {card.name}")
+                    return
+
+        if self.selected_card:
+            if self.current_player == self.player1:
+                for i, card in enumerate(self.player2.cards):
+                    card_rect = pygame.Rect(500 + i * (self.CARD_WIDTH + 10), 200, self.CARD_WIDTH, self.CARD_HEIGHT)
+                    if card_rect.collidepoint(pos):
+                        self.opponent_card = card
+                        print(f"Player 1 selected {card.name} as opponent")
+                        self.battle_cards()
+                        return
+            else:
+                for i, card in enumerate(self.player1.cards):
+                    card_rect = pygame.Rect(100 + i * (self.CARD_WIDTH + 10), 200, self.CARD_WIDTH, self.CARD_HEIGHT)
+                    if card_rect.collidepoint(pos):
+                        self.opponent_card = card
+                        print(f"Player 2 selected {card.name} as opponent")
+                        self.battle_cards()
+                        return
+
+
+    def battle_cards(self):
+        if self.selected_card and self.opponent_card:
+            self.animate_attack((260, 290), (540, 290))
+            self.opponent_card.health -= self.selected_card.attack
+            if self.opponent_card.health <= 0:
+                if self.current_player == self.player1:
+                    self.player2.cards.remove(self.opponent_card)
+                else:
+                    self.player1.cards.remove(self.opponent_card)
+            self.selected_card, self.opponent_card = None, None
+            self.current_player = self.player2 if self.current_player == self.player1 else self.player1
+
+    def start_battle(self):
         running = True
         while running:
             self.draw_battlefield()
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:  # Klik kiri
-                        self.handle_click(event.pos)
-
-                # Escape untuk keluar
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        running = False
-
+                    self.handle_click(event.pos)
+                    if self.selected_card and self.opponent_card:
+                        self.battle_cards()
             self.clock.tick(30)
+            if not self.player1.cards or not self.player2.cards:
+                if self.player1.cards:
+                    self.player1_score += 1
+                if self.player2.cards:
+                    self.player2_score += 1
+                self.display_result_round()
+                running = False
 
-        self.turn_start_time = pygame.time.get_ticks()
-        self.current_player_idx = 0
-        self.turns_taken = 0
-
-
-# Contoh penggunaan
-if __name__ == "__main__":
-    pygame.init()
-    screen = pygame.display.set_mode((800, 600))
-    pygame.display.set_caption("Battlefield Example")
-
-    class Player:
-        def __init__(self, name):
-            self.name = name
-            self.cards = []
-
-        def add_card(self, card):
-            self.cards.append(card)
-
-    player1 = Player("Player 1")
-    player1.add_card(Card("Dragon", 100, 20, 50))
-    player1.add_card(Card("Phoenix", 80, 25, 40))
-    player1.add_card(Card("Knight", 90, 15, 30))
-
-    player2 = Player("Player 2")
-    player2.add_card(Card("Goblin", 60, 10, 20))
-    player2.add_card(Card("Orc", 110, 30, 50))
-    player2.add_card(Card("Elf", 70, 20, 30))
-
-    battlefield = Battlefield(screen, [player1, player2])
-    battlefield.start_battlefield()
+    def display_result_round(self):
+        self.screen.blit(self.background, (0, 0))
+        result_text = "Player 2 wins!" if not self.player1.cards else "Player 1 wins!"
+        result_surface = self.font.render(result_text, True, self.TEXT_COLOR)
+        self.screen.blit(result_surface, (300, 300))
+        pygame.display.flip()
+        pygame.time.wait(3000)
