@@ -1,16 +1,15 @@
 import pygame
-from card import Card
+from card import Card, Warrior, Archer, Guardian, Assassin
 class Shop:
     def __init__(self, screen, player):
         self.screen = screen
         self.player = player
         self.font = pygame.font.Font(None, 30)
         self.cards = [
-            Card("Card1", 50, 10, 20),
-            Card("Card2", 60, 15, 30),
-            Card("Card3", 70, 20, 40),
-            Card("Card3", 70, 25,40),
-            Card("Card3", 56, 23, 42)
+            Warrior("Warrior", 15, 0.3, 90, 1, 6),
+            Archer("Archer", 12, 0.2, 70, 1, 6),
+            Guardian("Guardian", 15, 0.6, 130, 1, 6),
+            Assassin("Assassin", 28, 0.25, 75, 1, 6),
         ]
         self.selected_card = None
         self.CARD_WIDTH = 120
@@ -56,8 +55,8 @@ class Shop:
         self.screen.blit(hp_text, (pos[0] + 10, pos[1] + 50))
         atk_text = self.font.render(f"ATK: {card.attack}", True, (255, 255, 255))
         self.screen.blit(atk_text, (pos[0] + 10, pos[1] + 90))
-        price_text = self.font.render(f"Price: {card.price}", True, (255, 255, 255))
-        self.screen.blit(price_text, (pos[0] + 10, pos[1] + 130))
+        # price_text = self.font.render(f"Price: {card.price}", True, (255, 255, 255))
+        # self.screen.blit(price_text, (pos[0] + 10, pos[1] + 130))
 
     def handle_click(self, pos):
         start_x = 100
@@ -93,9 +92,10 @@ class Shop:
         if self.player.coins >= refresh_cost:
             self.player.coins -= refresh_cost
             self.cards = [
-                Card("Card4", 80, 25, 50),
-                Card("Card5", 90, 30, 60),
-                Card("Card6", 100, 35, 70)
+                Warrior("Warrior", 15, 0.3, 90, 1, 6),
+                Archer("Archer", 12, 0.2, 70, 1, 6),
+                Guardian("Guardian", 15, 0.6, 130, 1, 6),
+                Assassin("Assassin", 28, 0.25, 75, 1, 6),
             ]
             self.selected_card = None
             print("Shop refreshed!")

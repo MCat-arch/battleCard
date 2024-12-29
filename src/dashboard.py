@@ -4,7 +4,14 @@ import random
 from input_name import get_player_names
 from battlefield import Battlefield
 from deck import Deck
-from card import Card
+from card import Card, Warrior, Archer, Assassin, Guardian
+
+list_card = [
+            Warrior("Warrior", 15, 0.3, 90, 1, 6),
+            Archer("Archer", 12, 0.2, 70, 1, 6),
+            Guardian("Guardian", 15, 0.6, 130, 1, 6),
+            Assassin("Assassin", 28, 0.25, 75, 1, 6),
+]
 
 class Dashboard:
     def __init__(self, screen):
@@ -72,8 +79,9 @@ class Dashboard:
             player2 = Player(player2_name)
             
             # Mock kartu awal
-            player1.cards.append(Card("Dragon", 100, 20, 50))
-            player2.cards.append(Card("Phoenix", 80, 25, 60))
+            
+            player1.cards.append(random.choice(list_card))
+            player2.cards.append(random.choice(list_card))
 
             # Flip koin menentukan siapa duluan
             coin_flip = random.choice(["player1", "player2"])

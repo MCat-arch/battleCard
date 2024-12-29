@@ -1,16 +1,18 @@
 import pygame
 import sys
-from card import Card
+from card import Card, Warrior, Archer, Guardian, Assassin
 
 class Deck:
     def __init__(self, screen, players):
         self.screen = screen
         self.players = players
         self.deck = [
-            Card("Dragon", 100, 20, 50),
-            Card("Phoenix", 80, 25, 60),
-            Card("Golem", 120, 15, 40),
-            Card("Elf", 70, 30, 30),
+        
+            Warrior("Warrior", 15, 0.3, 90, 1, 6),
+            Archer("Archer", 12, 0.2, 70, 1, 6),
+            Guardian("Guardian", 15, 0.6, 130, 1, 6),
+            Assassin("Assassin", 28, 0.25, 75, 1, 6),
+
         ]
         self.font = pygame.font.Font(None, 40)
         self.clock = pygame.time.Clock()
