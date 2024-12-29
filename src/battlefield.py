@@ -111,12 +111,12 @@ class Battlefield:
                 card_rect = pygame.Rect(340 + i * (self.CARD_WIDTH + 20), 100, self.CARD_WIDTH, self.CARD_HEIGHT)
                 if card_rect.collidepoint(pos):
                     if hasattr(self, 'selected_main_card_index') and self.selected_main_card_index == i:
-                        if hasattr(self, 'double_click'):
-                            del self.double_click
+                        if hasattr(self, 'double_click_main'):
+                            del self.double_click_main
                             self.selected_main_card_index = i
                             print(f"Selected main card for merging at index {i}")
                         else:
-                            self.double_click = True
+                            self.double_click_main = True
                             print(f"Double-click detected on main card at index {i}")
                     else:
                         self.selected_main_card_index = i
@@ -127,8 +127,17 @@ class Battlefield:
             for i in range(2, len(current_player.cards)):
                 card_rect = pygame.Rect(200 + (self.CARD_WIDTH + 20) * (i - 2), 300, self.CARD_WIDTH, self.CARD_HEIGHT)
                 if card_rect.collidepoint(pos):
-                    self.selected_regular_card_index = i
-                    print(f"Selected regular card at index {i}")
+                    if hasattr(self, 'selected_regular_card_index') and self.selected_regular_card_index == i:
+                        if hasattr(self, 'double_click_regular'):
+                            del self.double_click_regular
+                            self.selected_regular_card_index = i
+                            print(f"Selected regular card for merging at index {i}")
+                        else:
+                            self.double_click_regular = True
+                            print(f"Double-click detected on regular card at index {i}")
+                    else:
+                        self.selected_regular_card_index = i
+                        print(f"Selected regular card at index {i}")
                     return
 
             # Cek klik pada kartu biasa untuk swap
@@ -138,6 +147,7 @@ class Battlefield:
                     self.swap_card(i)
                     print(f"Swapped card at index {i} with main card {self.selected_main_card_index}")
                     return
+
 
     def draw_battlefield(self):
         """Gambar battlefield di layar."""
@@ -152,7 +162,7 @@ class Battlefield:
                 if i < len(current_player.cards):
                     main_card = current_player.cards[i]
                     is_selected = hasattr(self, 'selected_main_card_index') and self.selected_main_card_index == i
-                    is_double_clicked = hasattr(self, 'double_click') and self.selected_main_card_index == i
+                    is_double_clicked = hasattr(self, 'double_click_main') and self.selected_main_card_index == i
                     self.draw_card(main_card, (340 + i * (self.CARD_WIDTH + 20), 100), is_selected=is_selected, is_double_clicked=is_double_clicked)
 
             # Gambar kartu tambahan
@@ -163,7 +173,8 @@ class Battlefield:
                     x = start_x + (self.CARD_WIDTH + gap) * (i - 2)
                     y = 300
                     is_selected = hasattr(self, 'selected_regular_card_index') and self.selected_regular_card_index == i
-                    self.draw_card(card, (x, y), is_selected=is_selected)
+                    is_double_clicked = hasattr(self, 'double_click_regular') and self.selected_regular_card_index == i
+                    self.draw_card(card, (x, y), is_selected=is_selected, is_double_clicked=is_double_clicked)
 
             # Gambar deck kartu hasil shop
             if self.shop_cards:
@@ -197,7 +208,7 @@ class Battlefield:
         
         card_rect = pygame.Rect(scaled_pos[0], scaled_pos[1], scaled_width, scaled_height)
         border_color = (255, 255, 0) if is_double_clicked else (0, 0, 0)
-        border_width = 10 if is_double_clicked else 2
+        border_width = 5 if is_double_clicked else 2
         
         # Gambar border kartu
         pygame.draw.rect(self.screen, border_color, card_rect, border_width)
@@ -214,20 +225,19 @@ class Battlefield:
         self.screen.blit(atk_text, (scaled_pos[0] + 10, scaled_pos[1] + 90))
 
 
+
                 
-    def swap_card(self):
+    def swap_card(self, index):
         """Swap kartu utama dengan kartu lain."""
         current_player = self.players[self.current_player_idx]
-        if hasattr(self, 'selected_main_card_index') and hasattr(self, 'selected_regular_card_index'):
-            current_player.cards[self.selected_main_card_index], current_player.cards[self.selected_regular_card_index] = (
-                current_player.cards[self.selected_regular_card_index],
+        if hasattr(self, 'selected_main_card_index') and index < len(current_player.cards):
+            current_player.cards[self.selected_main_card_index], current_player.cards[index] = (
+                current_player.cards[index],
                 current_player.cards[self.selected_main_card_index],
             )
-            print(f"Swapped card at index {self.selected_regular_card_index} with main card {self.selected_main_card_index}")
+            print(f"Swapped card at index {index} with main card {self.selected_main_card_index}")
             del self.selected_main_card_index
-            del self.selected_regular_card_index
-        else:
-            print("Select a main card and a regular card to swap.")
+
 
         
     def merge_card(self):
@@ -254,6 +264,7 @@ class Battlefield:
                 print("Cards cannot be merged. They must have the same name and level.")
         else:
             print("Select a main card and a regular card to merge.")
+
 
 
     def start_battlefield(self):
