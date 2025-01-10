@@ -3,7 +3,7 @@ from dashboard import Dashboard
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((1280, 720))
     pygame.display.set_caption("Card Battle Game")
     
     dashboard = Dashboard(screen)
@@ -13,3 +13,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
